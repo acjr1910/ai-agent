@@ -1,6 +1,29 @@
 import os
 import subprocess
 
+schema_run_python_file = {
+    "type": "function",
+    "function": {
+        "name": "run_python_file",
+        "description": "Runs python file",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "File path to the actual file, relative to the working directory (default is the working directory itself)",
+                },
+                "args": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "The list of args for that file execution",
+                },
+            },
+            "required": ["file_path"],
+        },
+    },
+}
+
 
 def run_python_file(
     working_directory: str, file_path: str, args: list[str] | None = None
