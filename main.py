@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from prompts import system_prompt
+from config import MAX_AGENT_LOOP
 from functions.call_function import available_functions, call_function
 
 
@@ -33,7 +34,7 @@ def main():
         },
     ]
 
-    for _ in range(20):
+    for _ in range(MAX_AGENT_LOOP):
         try:
             response = client.chat.completions.create(
                 model="openrouter/free",
@@ -72,7 +73,7 @@ def main():
         except Exception as e:
             print(f"Error in generate_content: {e}")
 
-    print(f"Maximum iterations ({20}) reached")
+    print(f"Maximum iterations ({MAX_AGENT_LOOP}) reached")
     sys.exit(1)
 
 

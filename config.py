@@ -1,2 +1,3 @@
 MAX_CHARS = 10000
+MAX_AGENT_LOOP = 20
 WORKING_DIR = "./calculator"
