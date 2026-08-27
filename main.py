@@ -1,8 +1,10 @@
 import os
-import json
+import sys
 import argparse
+
 from dotenv import load_dotenv
 from openai import OpenAI
+
 from prompts import system_prompt
 from functions.call_function import available_functions, call_function
 
@@ -22,6 +24,7 @@ def main():
         api_key=api_key,
     )
     user_prompt = args.user_prompt
+
     messages = [
         {"role": "system", "content": system_prompt},
         {
@@ -29,36 +32,48 @@ def main():
             "content": user_prompt,
         },
     ]
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=messages,
-        temperature=0,
-        tools=available_functions,
-    )
-    message = response.choices[0].message
 
-    if not response.usage:
-        raise RuntimeError("Request has failed")
+    for _ in range(20):
+        try:
+            response = client.chat.completions.create(
+                model="openrouter/free",
+                messages=messages,
+                tools=available_functions,
+            )
 
-    if args.verbose:
-        print(f"User prompt: {user_prompt}")
-        print(f"Prompt tokens: {response.usage.prompt_tokens}")
-        print(f"Response tokens: {response.usage.completion_tokens}")
+            if not response.usage:
+                raise RuntimeError("API response appears to be malformed")
 
-    if message.tool_calls:
-        for tool_call in message.tool_calls:
-            if tool_call.type != "function":
-                continue
-            result_message = call_function(tool_call, args.verbose)
-            print("0>>>>>", result_message)
-            if not result_message.get("content"):
-                raise RuntimeError(
-                    f"Empty function response for {tool_call.function.name}"
-                )
             if args.verbose:
-                print(f"-> {result_message['content']}")
+                print(f"User prompt: {user_prompt}")
+                print(f"Prompt tokens: {response.usage.prompt_tokens}")
+                print(f"Response tokens: {response.usage.completion_tokens}")
 
-    print(response.choices[0].message.content)
+            message = response.choices[0].message
+            messages.append(message)
+
+            if not message.tool_calls:
+                print("Final response:")
+                print(message.content)
+                return
+
+            if message.tool_calls:
+                for tool_call in message.tool_calls:
+                    if tool_call.type != "function":
+                        continue
+                    result_message = call_function(tool_call, args.verbose)
+                    if not result_message.get("content"):
+                        raise RuntimeError(
+                            f"Empty function response for {tool_call.function.name}"
+                        )
+                    if args.verbose:
+                        print(f"-> {result_message['content']}")
+                    messages.append(result_message)
+        except Exception as e:
+            print(f"Error in generate_content: {e}")
+
+    print(f"Maximum iterations ({20}) reached")
+    sys.exit(1)
 
 
 if __name__ == "__main__":
